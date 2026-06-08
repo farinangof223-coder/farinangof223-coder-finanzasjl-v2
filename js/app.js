@@ -231,51 +231,6 @@ let db = JSON.parse(localStorage.getItem('freddy_db_v11')) || [];
 
 
     // =========================
-    // ACTUALIZACIÓN DE APP SIN BORRAR DATOS
-    // =========================
-
-    let waitingServiceWorker = null;
-    }
-    }
-
-        window.location.reload();
-    }
-
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('service-worker.js')
-                .then(registration => {
-                    registration.addEventListener('updatefound', () => {
-                        const newWorker = registration.installing;
-
-                        if (!newWorker) return;
-
-                        newWorker.addEventListener('statechange', () => {
-                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                waitingServiceWorker = newWorker;
-                                showUpdateBanner();
-                            }
-                        });
-                    });
-
-                    if (registration.waiting) {
-                        waitingServiceWorker = registration.waiting;
-                        showUpdateBanner();
-                    }
-                })
-                .catch(error => {
-                    console.warn('Service Worker no registrado:', error);
-                });
-
-            navigator.serviceWorker.addEventListener('controllerchange', () => {
-                if (window.__finanzasJLReloading) return;
-                window.__finanzasJLReloading = true;
-                window.location.reload();
-            });
-        });
-    }
-
-
-    // =========================
     // ACTUALIZACIÓN POR DESLIZAR HACIA ABAJO
     // =========================
 
