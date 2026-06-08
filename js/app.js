@@ -415,6 +415,8 @@ let db = JSON.parse(localStorage.getItem('freddy_db_v11')) || [];
             terContact: "Contacto",
             terEmail: "Correo electrónico",
             terAddress: "Dirección",
+            addOptionalTitle: "📇 Datos adicionales (opcionales)",
+            addOptionalHelp: "Completa esta sección solo si deseas guardar datos de contacto para recibos o seguimiento.",
             des: "Concepto",
             amt: "Monto",
             typ: "Tipo",
@@ -518,6 +520,8 @@ let db = JSON.parse(localStorage.getItem('freddy_db_v11')) || [];
             terContact: "Contact",
             terEmail: "Email",
             terAddress: "Address",
+            addOptionalTitle: "📇 Additional details (optional)",
+            addOptionalHelp: "Complete this section only if you want to save contact details for receipts or follow-up.",
             des: "Concept",
             amt: "Amount",
             typ: "Type",
@@ -713,6 +717,8 @@ let db = JSON.parse(localStorage.getItem('freddy_db_v11')) || [];
         if (document.getElementById('lbl-ter-contact')) document.getElementById('lbl-ter-contact').innerText = t.terContact;
         if (document.getElementById('lbl-ter-email')) document.getElementById('lbl-ter-email').innerText = t.terEmail;
         if (document.getElementById('lbl-ter-address')) document.getElementById('lbl-ter-address').innerText = t.terAddress;
+        if (document.getElementById('txt-add-optional-title')) document.getElementById('txt-add-optional-title').innerText = t.addOptionalTitle;
+        if (document.getElementById('txt-add-optional-help')) document.getElementById('txt-add-optional-help').innerText = t.addOptionalHelp;
         document.getElementById('lbl-des').innerText = t.des;
         document.getElementById('lbl-amt').innerText = t.amt;
         document.getElementById('lbl-typ').innerText = t.typ;
@@ -763,15 +769,23 @@ let db = JSON.parse(localStorage.getItem('freddy_db_v11')) || [];
     }
 
 
+    function setAccordionState(cardId, expand = false) {
+        const card = document.getElementById(cardId);
+        if (!card) return;
+
+        card.classList.toggle('collapsed', !expand);
+        const header = card.querySelector('.accordion-header');
+        if (header) {
+            header.setAttribute('aria-expanded', String(expand));
+        }
+    }
+
     function toggleAccordion(cardId) {
         const card = document.getElementById(cardId);
         if (!card) return;
 
-        const isCollapsed = card.classList.toggle('collapsed');
-        const header = card.querySelector('.accordion-header');
-        if (header) {
-            header.setAttribute('aria-expanded', String(!isCollapsed));
-        }
+        const willExpand = card.classList.contains('collapsed');
+        setAccordionState(cardId, willExpand);
     }
 
     function toggleLang() {
@@ -868,6 +882,7 @@ let db = JSON.parse(localStorage.getItem('freddy_db_v11')) || [];
         document.getElementById('chk-sumar-ingreso').checked = false;
 
         toggleAbonoLogic();
+        setAccordionState('add-optional-accordion', false);
         applyLang();
     }
 
@@ -1405,6 +1420,8 @@ let db = JSON.parse(localStorage.getItem('freddy_db_v11')) || [];
         document.getElementById('chk-sumar-ingreso').checked = item.sumarIngreso || false;
 
         toggleAbonoLogic();
+        const hasOptionalData = Boolean((item.contact || '').trim() || (item.email || '').trim() || (item.address || '').trim());
+        setAccordionState('add-optional-accordion', hasOptionalData);
         nav('scr-add');
         applyLang();
     }

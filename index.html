@@ -194,21 +194,6 @@
         </div>
 
         <div class="form-group">
-            <label id="lbl-ter-contact">Contacto</label>
-            <input type="text" id="ter-contact" placeholder="Ej: 300 000 0000">
-        </div>
-
-        <div class="form-group">
-            <label id="lbl-ter-email">Correo electrónico</label>
-            <input type="email" id="ter-email" placeholder="Ej: cliente@correo.com">
-        </div>
-
-        <div class="form-group">
-            <label id="lbl-ter-address">Dirección</label>
-            <input type="text" id="ter-address" placeholder="Ej: Pasto, Nariño">
-        </div>
-
-        <div class="form-group">
             <label id="lbl-des">Concepto</label>
             <input type="text" id="desc">
         </div>
@@ -216,6 +201,34 @@
         <div class="form-group">
             <label id="lbl-amt">Monto</label>
             <input type="number" id="amt">
+        </div>
+
+        <div id="add-optional-accordion" class="collapsible-card collapsed" style="margin: 6px 0 14px; border:1px solid #e5e7eb; border-radius:12px; background:#fafcff;">
+            <button type="button" class="accordion-header" onclick="toggleAccordion('add-optional-accordion')" aria-expanded="false" style="background:#fafcff;">
+                <span id="txt-add-optional-title" class="accordion-title" style="font-size:0.98rem;">📇 Datos adicionales (opcionales)</span>
+                <span class="accordion-icon">⌄</span>
+            </button>
+
+            <div class="accordion-content" style="padding-top:0;">
+                <p id="txt-add-optional-help" style="font-size:0.82rem; color:#666; line-height:1.4; margin-bottom:14px;">
+                    Completa esta sección solo si deseas guardar datos de contacto para recibos o seguimiento.
+                </p>
+
+                <div class="form-group">
+                    <label id="lbl-ter-contact">Contacto</label>
+                    <input type="text" id="ter-contact" placeholder="Ej: 300 000 0000">
+                </div>
+
+                <div class="form-group">
+                    <label id="lbl-ter-email">Correo electrónico</label>
+                    <input type="email" id="ter-email" placeholder="Ej: cliente@correo.com">
+                </div>
+
+                <div class="form-group" style="margin-bottom:0;">
+                    <label id="lbl-ter-address">Dirección</label>
+                    <input type="text" id="ter-address" placeholder="Ej: Pasto, Nariño">
+                </div>
+            </div>
         </div>
 
         <div class="form-group">
