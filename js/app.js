@@ -269,14 +269,16 @@ let db = JSON.parse(localStorage.getItem('freddy_db_v11')) || [];
 
         try {
             if (!('serviceWorker' in navigator)) {
-                window.location.reload();
+                setPullRefreshMessage(t.pullRefreshNoUpdate, false, true);
+                hidePullRefreshIndicator();
                 return;
             }
 
             const registration = await navigator.serviceWorker.getRegistration();
 
             if (!registration) {
-                window.location.reload();
+                setPullRefreshMessage(t.pullRefreshNoUpdate, false, true);
+                hidePullRefreshIndicator();
                 return;
             }
 
@@ -293,7 +295,8 @@ let db = JSON.parse(localStorage.getItem('freddy_db_v11')) || [];
             hidePullRefreshIndicator();
         } catch (error) {
             console.warn('No se pudo verificar actualización:', error);
-            window.location.reload();
+            setPullRefreshMessage(t.pullRefreshNoUpdate, false, true);
+            hidePullRefreshIndicator();
         } finally {
             setTimeout(() => {
                 isCheckingAppUpdate = false;
@@ -388,65 +391,6 @@ let db = JSON.parse(localStorage.getItem('freddy_db_v11')) || [];
 
 
     // =========================
-    // ALMACENAMIENTO PERSISTENTE
-    // =========================
-
-    function setStorageStatus(message, statusClass = '') {
-        const box = document.getElementById('storage-status-box');
-        if (!box) return;
-
-        box.className = `storage-status-box ${statusClass}`.trim();
-        box.innerText = message;
-    }
-
-    async function updatePersistentStorageStatus() {
-        const t = translations[currentLang];
-
-        if (!navigator.storage || !navigator.storage.persisted) {
-            setStorageStatus(t.storageStatusUnsupported, 'warn');
-            return;
-        }
-
-        try {
-            setStorageStatus(t.storageStatusChecking, 'warn');
-            const persisted = await navigator.storage.persisted();
-
-            if (persisted) {
-                setStorageStatus(t.storageStatusProtected, 'ok');
-            } else {
-                setStorageStatus(t.storageStatusNotProtected, 'warn');
-            }
-        } catch (error) {
-            console.warn('No se pudo verificar almacenamiento persistente:', error);
-            setStorageStatus(t.storageStatusUnsupported, 'warn');
-        }
-    }
-
-    async function requestPersistentStorage() {
-        const t = translations[currentLang];
-
-        if (!navigator.storage || !navigator.storage.persist) {
-            setStorageStatus(t.storageStatusUnsupported, 'warn');
-            return;
-        }
-
-        try {
-            const granted = await navigator.storage.persist();
-
-            if (granted) {
-                localStorage.setItem('finanzas_jl_persistent_storage_requested', 'true');
-                setStorageStatus(t.storageStatusGranted, 'ok');
-            } else {
-                setStorageStatus(t.storageStatusDenied, 'error');
-            }
-        } catch (error) {
-            console.warn('No se pudo solicitar almacenamiento persistente:', error);
-            setStorageStatus(t.storageStatusDenied, 'error');
-        }
-    }
-
-
-    // =========================
     // COPIA DE SEGURIDAD / IMPORTACIÓN
     // =========================
 
@@ -533,7 +477,6 @@ let db = JSON.parse(localStorage.getItem('freddy_db_v11')) || [];
         applyLang();
         updateUI();
         registerSafeServiceWorkerUpdates();
-        updatePersistentStorageStatus();
         loadProfileForm();
 
         if (document.getElementById('scr-hist')?.classList.contains('active')) {
@@ -724,16 +667,6 @@ let db = JSON.parse(localStorage.getItem('freddy_db_v11')) || [];
             backupImportConfirm: "Esto reemplazará los datos actuales de esta app por los datos del archivo importado. ¿Deseas continuar?",
             backupImportOk: "Datos importados correctamente. La app se actualizará ahora.",
             backupImportError: "No se pudo importar el archivo. Revisa que sea una copia de seguridad válida.",
-            storageTitle: "🔐 Protección de datos locales",
-            storageHelp: "Activa el almacenamiento persistente para reducir el riesgo de que el navegador elimine automáticamente los datos guardados en este dispositivo.",
-            storageButton: "Proteger datos en este dispositivo",
-            storageWarning: "Importante: si el usuario borra manualmente los datos del sitio, el navegador puede eliminar la información local. Para protección total se requiere respaldo en la nube o copia de seguridad.",
-            storageStatusChecking: "Verificando protección de datos...",
-            storageStatusProtected: "Protección activa: el navegador intentará conservar los datos locales.",
-            storageStatusNotProtected: "Protección no activa: se recomienda tocar el botón para solicitar almacenamiento persistente.",
-            storageStatusUnsupported: "Este navegador no permite solicitar almacenamiento persistente.",
-            storageStatusDenied: "El navegador no concedió almacenamiento persistente.",
-            storageStatusGranted: "Protección activada correctamente en este dispositivo.",
             pullRefreshReady: "Suelta para actualizar",
             pullRefreshChecking: "Buscando mejoras...",
             pullRefreshUpdating: "Actualizando app...",
@@ -843,16 +776,6 @@ let db = JSON.parse(localStorage.getItem('freddy_db_v11')) || [];
             backupImportConfirm: "This will replace the current data in this app with the imported file data. Do you want to continue?",
             backupImportOk: "Data imported successfully. The app will now refresh.",
             backupImportError: "The file could not be imported. Check that it is a valid backup.",
-            storageTitle: "🔐 Local data protection",
-            storageHelp: "Enable persistent storage to reduce the risk of the browser automatically deleting data saved on this device.",
-            storageButton: "Protect data on this device",
-            storageWarning: "Important: if the user manually deletes site data, the browser may remove local information. Full protection requires cloud backup or a backup file.",
-            storageStatusChecking: "Checking data protection...",
-            storageStatusProtected: "Protection active: the browser will try to preserve local data.",
-            storageStatusNotProtected: "Protection not active: tap the button to request persistent storage.",
-            storageStatusUnsupported: "This browser does not support persistent storage requests.",
-            storageStatusDenied: "The browser did not grant persistent storage.",
-            storageStatusGranted: "Protection successfully enabled on this device.",
             pullRefreshReady: "Release to update",
             pullRefreshChecking: "Checking updates...",
             pullRefreshUpdating: "Updating app...",
@@ -1011,13 +934,6 @@ let db = JSON.parse(localStorage.getItem('freddy_db_v11')) || [];
 
         document.getElementById('btn-save').innerText =
             document.getElementById('edit-index').value === "-1" ? t.save : t.update;
-if (document.getElementById('txt-storage-title')) {
-            document.getElementById('txt-storage-title').innerText = t.storageTitle;
-            document.getElementById('txt-storage-help').innerText = t.storageHelp;
-            document.getElementById('btn-storage-persist').innerText = t.storageButton;
-            document.getElementById('txt-storage-warning').innerText = t.storageWarning;
-            updatePersistentStorageStatus();
-        }
 
         updatePremiumStatusUI();
     }
