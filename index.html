@@ -13,6 +13,11 @@
 
 <body>
 
+<div id="pull-refresh-indicator" class="pull-refresh-indicator">
+    <span id="pull-refresh-icon">↻</span>
+    <span id="pull-refresh-text">Suelta para actualizar</span>
+</div>
+
 <div class="header">
     <button class="lang-switch" onclick="toggleLang()">🇺🇸/🇪🇸 <span id="lang-label">ES</span></button>
     <h1 id="app-title">FINANZAS JL</h1>
@@ -372,6 +377,32 @@
             <button id="btn-profile-save" onclick="saveProfile()" class="btn btn-primary">
                 💾 Guardar datos del emisor
             </button>
+        </div>
+    </div>
+
+
+    <div id="storage-accordion" class="card storage-card collapsible-card collapsed">
+        <button type="button" class="accordion-header" onclick="toggleAccordion('storage-accordion')" aria-expanded="false">
+            <span id="txt-storage-title" class="accordion-title">🔐 Protección de datos locales</span>
+            <span class="accordion-icon">⌄</span>
+        </button>
+
+        <div class="accordion-content">
+            <p id="txt-storage-help" style="font-size:0.85rem; color:#666; line-height:1.4; margin-bottom:12px;">
+                Activa el almacenamiento persistente para reducir el riesgo de que el navegador elimine automáticamente los datos guardados en este dispositivo.
+            </p>
+
+            <div id="storage-status-box" class="storage-status-box">
+                Estado: pendiente de verificar.
+            </div>
+
+            <button id="btn-storage-persist" type="button" onclick="requestPersistentStorage()" class="btn btn-primary">
+                Proteger datos en este dispositivo
+            </button>
+
+            <p id="txt-storage-warning" style="font-size:0.76rem; color:#777; line-height:1.35; margin-top:12px;">
+                Importante: si el usuario borra manualmente los datos del sitio, el navegador puede eliminar la información local. Para protección total se requiere respaldo en la nube o copia de seguridad.
+            </p>
         </div>
     </div>
 

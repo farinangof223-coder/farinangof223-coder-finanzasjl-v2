@@ -229,6 +229,268 @@ let db = JSON.parse(localStorage.getItem('freddy_db_v11')) || [];
         alert(translations[currentLang].profileSaved);
     }
 
+
+    // =========================
+    // ACTUALIZACIÓN DE APP SIN BORRAR DATOS
+    // =========================
+
+    let waitingServiceWorker = null;
+    }
+    }
+
+        window.location.reload();
+    }
+
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('service-worker.js')
+                .then(registration => {
+                    registration.addEventListener('updatefound', () => {
+                        const newWorker = registration.installing;
+
+                        if (!newWorker) return;
+
+                        newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                waitingServiceWorker = newWorker;
+                                showUpdateBanner();
+                            }
+                        });
+                    });
+
+                    if (registration.waiting) {
+                        waitingServiceWorker = registration.waiting;
+                        showUpdateBanner();
+                    }
+                })
+                .catch(error => {
+                    console.warn('Service Worker no registrado:', error);
+                });
+
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (window.__finanzasJLReloading) return;
+                window.__finanzasJLReloading = true;
+                window.location.reload();
+            });
+        });
+    }
+
+
+    // =========================
+    // ACTUALIZACIÓN POR DESLIZAR HACIA ABAJO
+    // =========================
+
+    let waitingServiceWorker = null;
+    let pullStartY = 0;
+    let pullCurrentY = 0;
+    let isPullingToRefresh = false;
+    let isCheckingAppUpdate = false;
+    const PULL_REFRESH_THRESHOLD = 85;
+
+    function setPullRefreshMessage(message, loading = false, visible = true) {
+        const indicator = document.getElementById('pull-refresh-indicator');
+        const text = document.getElementById('pull-refresh-text');
+
+        if (!indicator || !text) return;
+
+        text.innerText = message;
+        indicator.classList.toggle('loading', loading);
+        indicator.classList.toggle('visible', visible);
+    }
+
+    function hidePullRefreshIndicator(delay = 700) {
+        setTimeout(() => {
+            const indicator = document.getElementById('pull-refresh-indicator');
+            if (!indicator) return;
+            indicator.classList.remove('visible', 'loading');
+        }, delay);
+    }
+
+    async function checkForAppUpdateFromPull() {
+        if (isCheckingAppUpdate) return;
+        isCheckingAppUpdate = true;
+
+        const t = translations[currentLang] || translations.es;
+        setPullRefreshMessage(t.pullRefreshChecking, true, true);
+
+        try {
+            if (!('serviceWorker' in navigator)) {
+                window.location.reload();
+                return;
+            }
+
+            const registration = await navigator.serviceWorker.getRegistration();
+
+            if (!registration) {
+                window.location.reload();
+                return;
+            }
+
+            await registration.update();
+
+            if (registration.waiting) {
+                waitingServiceWorker = registration.waiting;
+                setPullRefreshMessage(t.pullRefreshUpdating, true, true);
+                waitingServiceWorker.postMessage({ type: 'SKIP_WAITING' });
+                return;
+            }
+
+            setPullRefreshMessage(t.pullRefreshNoUpdate, false, true);
+            hidePullRefreshIndicator();
+        } catch (error) {
+            console.warn('No se pudo verificar actualización:', error);
+            window.location.reload();
+        } finally {
+            setTimeout(() => {
+                isCheckingAppUpdate = false;
+            }, 900);
+        }
+    }
+
+    function registerPullToRefreshUpdate() {
+        if (window.__finanzasJLPullRefreshRegistered) return;
+        window.__finanzasJLPullRefreshRegistered = true;
+
+        window.addEventListener('touchstart', event => {
+            if (window.scrollY !== 0 || isCheckingAppUpdate) return;
+
+            pullStartY = event.touches[0].clientY;
+            pullCurrentY = pullStartY;
+            isPullingToRefresh = true;
+        }, { passive: true });
+
+        window.addEventListener('touchmove', event => {
+            if (!isPullingToRefresh || isCheckingAppUpdate) return;
+
+            pullCurrentY = event.touches[0].clientY;
+            const pullDistance = pullCurrentY - pullStartY;
+
+            if (pullDistance > 30 && window.scrollY === 0) {
+                const indicator = document.getElementById('pull-refresh-indicator');
+                if (indicator) indicator.classList.add('visible');
+
+                const t = translations[currentLang] || translations.es;
+                const text = document.getElementById('pull-refresh-text');
+                if (text) {
+                    text.innerText = pullDistance >= PULL_REFRESH_THRESHOLD
+                        ? t.pullRefreshReady
+                        : t.pullRefreshChecking;
+                }
+            }
+        }, { passive: true });
+
+        window.addEventListener('touchend', () => {
+            if (!isPullingToRefresh) return;
+
+            const pullDistance = pullCurrentY - pullStartY;
+            isPullingToRefresh = false;
+
+            if (pullDistance >= PULL_REFRESH_THRESHOLD && window.scrollY === 0) {
+                checkForAppUpdateFromPull();
+                return;
+            }
+
+            hidePullRefreshIndicator(0);
+        }, { passive: true });
+    }
+
+    function registerSafeServiceWorkerUpdates() {
+        if (!('serviceWorker' in navigator)) {
+            registerPullToRefreshUpdate();
+            return;
+        }
+
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('service-worker.js')
+                .then(registration => {
+                    if (registration.waiting) {
+                        waitingServiceWorker = registration.waiting;
+                    }
+
+                    registration.addEventListener('updatefound', () => {
+                        const newWorker = registration.installing;
+                        if (!newWorker) return;
+
+                        newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                waitingServiceWorker = newWorker;
+                            }
+                        });
+                    });
+                })
+                .catch(error => {
+                    console.warn('Service Worker no registrado:', error);
+                });
+
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (window.__finanzasJLReloading) return;
+                window.__finanzasJLReloading = true;
+                window.location.reload();
+            });
+
+            registerPullToRefreshUpdate();
+        });
+    }
+
+
+    // =========================
+    // ALMACENAMIENTO PERSISTENTE
+    // =========================
+
+    function setStorageStatus(message, statusClass = '') {
+        const box = document.getElementById('storage-status-box');
+        if (!box) return;
+
+        box.className = `storage-status-box ${statusClass}`.trim();
+        box.innerText = message;
+    }
+
+    async function updatePersistentStorageStatus() {
+        const t = translations[currentLang];
+
+        if (!navigator.storage || !navigator.storage.persisted) {
+            setStorageStatus(t.storageStatusUnsupported, 'warn');
+            return;
+        }
+
+        try {
+            setStorageStatus(t.storageStatusChecking, 'warn');
+            const persisted = await navigator.storage.persisted();
+
+            if (persisted) {
+                setStorageStatus(t.storageStatusProtected, 'ok');
+            } else {
+                setStorageStatus(t.storageStatusNotProtected, 'warn');
+            }
+        } catch (error) {
+            console.warn('No se pudo verificar almacenamiento persistente:', error);
+            setStorageStatus(t.storageStatusUnsupported, 'warn');
+        }
+    }
+
+    async function requestPersistentStorage() {
+        const t = translations[currentLang];
+
+        if (!navigator.storage || !navigator.storage.persist) {
+            setStorageStatus(t.storageStatusUnsupported, 'warn');
+            return;
+        }
+
+        try {
+            const granted = await navigator.storage.persist();
+
+            if (granted) {
+                localStorage.setItem('finanzas_jl_persistent_storage_requested', 'true');
+                setStorageStatus(t.storageStatusGranted, 'ok');
+            } else {
+                setStorageStatus(t.storageStatusDenied, 'error');
+            }
+        } catch (error) {
+            console.warn('No se pudo solicitar almacenamiento persistente:', error);
+            setStorageStatus(t.storageStatusDenied, 'error');
+        }
+    }
+
+
     // =========================
     // COPIA DE SEGURIDAD / IMPORTACIÓN
     // =========================
@@ -315,6 +577,8 @@ let db = JSON.parse(localStorage.getItem('freddy_db_v11')) || [];
         initExcelPrintDate();
         applyLang();
         updateUI();
+        registerSafeServiceWorkerUpdates();
+        updatePersistentStorageStatus();
         loadProfileForm();
 
         if (document.getElementById('scr-hist')?.classList.contains('active')) {
@@ -504,7 +768,21 @@ let db = JSON.parse(localStorage.getItem('freddy_db_v11')) || [];
             backupInvalid: "El archivo seleccionado no parece ser una copia válida de FINANZAS JL.",
             backupImportConfirm: "Esto reemplazará los datos actuales de esta app por los datos del archivo importado. ¿Deseas continuar?",
             backupImportOk: "Datos importados correctamente. La app se actualizará ahora.",
-            backupImportError: "No se pudo importar el archivo. Revisa que sea una copia de seguridad válida."
+            backupImportError: "No se pudo importar el archivo. Revisa que sea una copia de seguridad válida.",
+            storageTitle: "🔐 Protección de datos locales",
+            storageHelp: "Activa el almacenamiento persistente para reducir el riesgo de que el navegador elimine automáticamente los datos guardados en este dispositivo.",
+            storageButton: "Proteger datos en este dispositivo",
+            storageWarning: "Importante: si el usuario borra manualmente los datos del sitio, el navegador puede eliminar la información local. Para protección total se requiere respaldo en la nube o copia de seguridad.",
+            storageStatusChecking: "Verificando protección de datos...",
+            storageStatusProtected: "Protección activa: el navegador intentará conservar los datos locales.",
+            storageStatusNotProtected: "Protección no activa: se recomienda tocar el botón para solicitar almacenamiento persistente.",
+            storageStatusUnsupported: "Este navegador no permite solicitar almacenamiento persistente.",
+            storageStatusDenied: "El navegador no concedió almacenamiento persistente.",
+            storageStatusGranted: "Protección activada correctamente en este dispositivo.",
+            pullRefreshReady: "Suelta para actualizar",
+            pullRefreshChecking: "Buscando mejoras...",
+            pullRefreshUpdating: "Actualizando app...",
+            pullRefreshNoUpdate: "La app ya está actualizada"
         },
         en: {
             title: "FINANZAS JL",
@@ -609,7 +887,21 @@ let db = JSON.parse(localStorage.getItem('freddy_db_v11')) || [];
             backupInvalid: "The selected file does not seem to be a valid FINANZAS JL backup.",
             backupImportConfirm: "This will replace the current data in this app with the imported file data. Do you want to continue?",
             backupImportOk: "Data imported successfully. The app will now refresh.",
-            backupImportError: "The file could not be imported. Check that it is a valid backup."
+            backupImportError: "The file could not be imported. Check that it is a valid backup.",
+            storageTitle: "🔐 Local data protection",
+            storageHelp: "Enable persistent storage to reduce the risk of the browser automatically deleting data saved on this device.",
+            storageButton: "Protect data on this device",
+            storageWarning: "Important: if the user manually deletes site data, the browser may remove local information. Full protection requires cloud backup or a backup file.",
+            storageStatusChecking: "Checking data protection...",
+            storageStatusProtected: "Protection active: the browser will try to preserve local data.",
+            storageStatusNotProtected: "Protection not active: tap the button to request persistent storage.",
+            storageStatusUnsupported: "This browser does not support persistent storage requests.",
+            storageStatusDenied: "The browser did not grant persistent storage.",
+            storageStatusGranted: "Protection successfully enabled on this device.",
+            pullRefreshReady: "Release to update",
+            pullRefreshChecking: "Checking updates...",
+            pullRefreshUpdating: "Updating app...",
+            pullRefreshNoUpdate: "App is up to date"
         }
     };
 
@@ -764,6 +1056,13 @@ let db = JSON.parse(localStorage.getItem('freddy_db_v11')) || [];
 
         document.getElementById('btn-save').innerText =
             document.getElementById('edit-index').value === "-1" ? t.save : t.update;
+if (document.getElementById('txt-storage-title')) {
+            document.getElementById('txt-storage-title').innerText = t.storageTitle;
+            document.getElementById('txt-storage-help').innerText = t.storageHelp;
+            document.getElementById('btn-storage-persist').innerText = t.storageButton;
+            document.getElementById('txt-storage-warning').innerText = t.storageWarning;
+            updatePersistentStorageStatus();
+        }
 
         updatePremiumStatusUI();
     }
